@@ -9,12 +9,15 @@ import ModalFormularioTarea from "../Components/ModalFormularioTarea"
 import Tarea from "../Components/Tarea"
 import useAdmin from "../Hooks/useAdmin"
 import useProyectos from "../Hooks/useProyectos"
+import { io } from 'socket.io-client'
+
+let socket
 
 const Proyecto = () => {
 
   const params = useParams()
 
-  const { obtenerProyecto, proyecto, cargando, handleModalTarea, alerta, } = useProyectos()
+  const { obtenerProyecto, proyecto, cargando, handleModalTarea, alerta, submitTareasProyectos, eliminarTareaProyecto, } = useProyectos()
 
   const admin = useAdmin()
 
@@ -22,11 +25,40 @@ const Proyecto = () => {
     obtenerProyecto(params.id)
   }, [])
 
+  useEffect(() => {
+    socket = io(import.meta.env.VITE_BACKEND_URL)
+    socket.emit('abrir proyecto', params.id)
+  }, [])
+  
+  useEffect(() => {
+    socket.on('tarea agregada', tareaNueva => {
+      if (tareaNueva.proyecto === proyecto._id) {
+        submitTareasProyectos(tareaNueva)
+      }
+    })
+
+    socket.on('tarea eliminada', tareaEliminada => {
+      if (tareaEliminada === proyecto._id) {
+        eliminarTareaProyecto(tareaEliminada)
+      }
+    })
+  })
+  
+
+  // useEffect(() => {
+  //   socket.on('respuesta', (persona) => {
+  //     console.log(persona)
+  //   })
+  // })
+
+  
+
   const { nombre } = proyecto
+  
+  // console.log(proyecto)
 
   const { msg } = alerta
-  return (
-    msg && alerta.error ? <Alerta alerta={alerta} /> : (
+  return  (
       cargando ? <Cargando /> : (
         <>
           <div className=" justify-between flex ">
@@ -59,11 +91,11 @@ const Proyecto = () => {
           )}
 
           <p className=" font-bold text-xl mt-10">Tareas del Proyecto</p>
-          <div className=" flex justify-center">
+          {/* <div className=" flex justify-center">
             <div className=" w-full md:w-1/3 lg:w-1/4">
               {msg && <Alerta alerta={alerta} />}
             </div>
-          </div>
+          </div> */}
 
           <div className=" bg-white shadow mt-10 rounded-lg">
             {proyecto.tareas?.length ? proyecto.tareas?.map(tarea => (
@@ -106,7 +138,7 @@ const Proyecto = () => {
         </>
       )
     )
-  )
+  
 }
 
 export default Proyecto
